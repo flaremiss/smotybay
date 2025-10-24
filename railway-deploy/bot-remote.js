@@ -1,3 +1,4 @@
+miss, [25.10.2025 1:35]
 const fs = require('fs-extra');
 const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
@@ -7,9 +8,9 @@ const express = require('express');
 const config = {
   botToken: process.env.BOT_TOKEN,
   webhookUrl: process.env.WEBHOOK_URL,
-  port: process.env.PORT || 3000,
+  port: process.env.PORT  3000,
   adminChatId: process.env.ADMIN_CHAT_ID,
-  moderationUrl: process.env.MODERATION_URL || 'https://your-ngrok-url.ngrok.io'
+  moderationUrl: process.env.MODERATION_URL  'https://your-ngrok-url.ngrok.io'
 };
 
 // Проверка обязательных переменных
@@ -79,18 +80,19 @@ function mainMenuKeyboard() {
   };
 }
 
+miss, [25.10.2025 1:35]
 // Обработка команды /start
 bot.onText(/^\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   
-  console.log(`👤 Новый пользователь: ${userId} (@${msg.from.username || 'без username'})`);
+  console.log(👤 Новый пользователь: ${userId} (@${msg.from.username || 'без username'}));
   
   // Сохраняем пользователя
   users[userId] = {
     profile: {
       username: msg.from.username || 'Неизвестно',
-      firstName: msg.from.first_name || 'Неизвестно'
+      firstName: msg.from.first_name  'Неизвестно'
     },
     platinum: false,
     createdAt: new Date().toISOString()
@@ -140,17 +142,17 @@ bot.on('message', async (msg) => {
   }
   
   if (text === '💰 Продать') {
+    // Запускаем процесс продажи
+    users[userId] = users[userId]  {};
+    users[userId].session = { flow: 'sell', step: 'title', temp: {} };
+    await saveData();
+    
     await bot.sendMessage(chatId, 
-      '💰 **Продажа товаров**\n\n' +
-      'Выберите способ создания объявления:',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '➕ Создать объявление', callback_data: 'sell_create' }],
-            [{ text: '📝 Готовое объявление', callback_data: 'sell_parse' }]
-          ]
-        }
-      }
+      '💰 **Создание объявления**\n\n' +
+      '📝 **Шаг 1/6: Название товара**\n\n' +
+      'Напишите название вашего товара:\n' +
+      'Например: "Nike Air Force 1, размер 42"',
+      { parse_mode: 'Markdown' }
     );
     return;
   }
@@ -158,15 +160,9 @@ bot.on('message', async (msg) => {
   if (text === '🔍 Поиск') {
     await bot.sendMessage(chatId, 
       '🔍 **Поиск товаров**\n\n' +
-      'Введите ключевые слова для поиска:',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '🎯 Фильтры', callback_data: 'search_filters' }],
-            [{ text: '📰 Лента', callback_data: 'search_feed' }]
-          ]
-        }
-      }
+      'Введите ключевые слова для поиска:\n' +
+      'Например: "кроссовки", "джинсы", "куртка"',
+      { parse_mode: 'Markdown' }
     );
     return;
   }
@@ -180,9 +176,9 @@ bot.on('message', async (msg) => {
     
     let message = '📋 **Ваши объявления:**\n\n';
     userListings.forEach((listing, index) => {
-      message += `${index + 1}. ${listing.title || 'Без названия'}\n`;
-      if (listing.price) message += `💰 ${listing.price}₽\n`;
-      if (listing.style) message += `🎨 ${listing.style}\n`;
+      message += ${index + 1}. ${listing.title || 'Без названия'}\n;
+      if (listing.price) message += 💰 ${listing.price}₽\n;
+      if (listing.style) message += 🎨 ${listing.style}\n;
       message += '\n';
     });
     
@@ -198,11 +194,142 @@ bot.on('message', async (msg) => {
       '• Больше людей увидят ваши объявления\n' +
       '• Специальный значок 💎 Platinum\n\n' +
       '💰 **Стоимость:** 300₽\n' +
-      '🌐 **Оплата:** Через панель модерации\n' +
-      `🔗 **Ссылка:** ${config.moderationUrl}`,
+      '🌐 Оплата: Через панель модерации\n' +
+      🔗 **Ссылка:** ${config.moderationUrl},
       { parse_mode: 'Markdown' }
     );
     return;
+  }
+  
+  // Обработка сессий
+  if (users[userId] && users[userId].session) {
+    const session = users[userId].session;
+    
+    // Обработка продажи
+    if (session.flow === 'sell') {
+      if (session.step === 'title') {
+        users[userId].session.temp.title = text;
+        users[userId].session.step = 'price';
+        await saveData();
+        
+        await bot.sendMessage(chatId,
+
+miss, [25.10.2025 1:35]
+'💰 Создание объявления**\n\n' +
+          '📝 **Шаг 2/6: Цена**\n\n' +
+          'Укажите цену в рублях:\n' +
+          'Например: "5000" или "5000₽"',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+      
+      if (session.step === 'price') {
+        const price = text.replace(/[^\d]/g, '');
+        if (!price || isNaN(price)) {
+          await bot.sendMessage(chatId, '❌ Введите корректную цену (только цифры)');
+          return;
+        }
+        
+        users[userId].session.temp.price = price;
+        users[userId].session.step = 'style';
+        await saveData();
+        
+        await bot.sendMessage(chatId, 
+          '💰 **Создание объявления**\n\n' +
+          '📝 **Шаг 3/6: Стиль**\n\n' +
+          'Выберите стиль одежды:\n' +
+          '• Архив\n' +
+          '• Кежуал\n' +
+          '• Стритвир\n' +
+          '• Спорт\n' +
+          '• Другой',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+      
+      if (session.step === 'style') {
+        users[userId].session.temp.style = text;
+        users[userId].session.step = 'gender';
+        await saveData();
+        
+        await bot.sendMessage(chatId, 
+          '💰 **Создание объявления**\n\n' +
+          '📝 **Шаг 4/6: Пол**\n\n' +
+          'Для кого предназначена одежда:\n' +
+          '• Мужской\n' +
+          '• Женский\n' +
+          '• Унисекс',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+      
+      if (session.step === 'gender') {
+        users[userId].session.temp.gender = text;
+        users[userId].session.step = 'description';
+        await saveData();
+        
+        await bot.sendMessage(chatId, 
+          '💰 **Создание объявления**\n\n' +
+          '📝 **Шаг 5/6: Описание**\n\n' +
+          'Опишите товар подробно:\n' +
+          '• Состояние\n' +
+          '• Размер\n' +
+          '• Бренд\n' +
+          '• Особенности',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+      
+      if (session.step === 'description') {
+        users[userId].session.temp.description = text;
+        users[userId].session.step = 'photo';
+        await saveData();
+        
+        await bot.sendMessage(chatId, 
+          '💰 **Создание объявления**\n\n' +
+          '📝 **Шаг 6/6: Фото**\n\n' +
+          'Отправьте фото товара или напишите "пропустить"',
+          { parse_mode: 'Markdown' }
+        );
+        return;
+      }
+      
+      if (session.step === 'photo') {
+        if (text.toLowerCase() === 'пропустить') {
+          // Создаем объявление без фото
+          const listing = {
+            id: Date.now().toString(),
+            userId: userId,
+            title: users[userId].session.temp.title,
+            price: users[userId].session.temp.price,
+            style: users[userId].session.temp.style,
+            gender: users[userId].session.temp.gender,
+            description: users[userId].session.temp.description,
+            createdAt: new Date().toISOString(),
+            approved: true
+          };
+          
+          listings.push(listing);
+          users[userId].session = null;
+          await saveData();
+          
+          await bot.sendMessage(chatId, 
+            '✅ **Объявление создано!**\n\n' +
+            `📝 **${listing.title}**\n` +
+            `💰 **${listing.price}₽**\n` +
+            `🎨 **${listing.style}**\n` +
+            `👤 **${listing.gender}**\n\n` +
+            'Ваше объявление добавлено в ленту!',
+            { parse_mode: 'Markdown', ...mainMenuKeyboard() }
+          );
+          return;
+        }
+      }
+    }
   }
   
   // Обработка поисковых запросов
@@ -216,7 +343,10 @@ bot.on('message', async (msg) => {
     
     if (searchResults.length > 0) {
       let message = `🔍 **Результаты поиска по запросу "${text}":**\n\n`;
-      searchResults.slice(0, 5).forEach((listing, index) => {
+      searchResults.slice(0, 5).forEach(
+
+miss, [25.10.2025 1:35]
+(listing, index) => {
         message += `${index + 1}. ${listing.title || 'Без названия'}\n`;
         if (listing.price) message += `💰 ${listing.price}₽\n`;
         if (listing.style) message += `🎨 ${listing.style}\n`;
@@ -231,7 +361,7 @@ bot.on('message', async (msg) => {
     } else {
       await bot.sendMessage(chatId, 
         `🔍 По запросу "${text}" ничего не найдено.\n\n` +
-        'Попробуйте другие ключевые слова или используйте фильтры.',
+        'Попробуйте другие ключевые слова.',
         mainMenuKeyboard()
       );
     }
@@ -262,23 +392,25 @@ bot.on('callback_query', async (query) => {
     const randomListing = availableListings[Math.floor(Math.random() * availableListings.length)];
     let message = `📰 **Объявление из ленты:**\n\n`;
     message += `📝 **${randomListing.title || 'Без названия'}**\n`;
-    if (randomListing.price) message += `💰 **Цена:** ${randomListing.price}₽\n`;
-    if (randomListing.style) message += `🎨 **Стиль:** ${randomListing.style}\n`;
-    if (randomListing.description) message += `📄 **Описание:** ${randomListing.description}\n`;
+    if (randomListing.price) message += `💰 **Цена: ${randomListing.price}₽\n`;
+    if (randomListing.style) message += 🎨 **Стиль:** ${randomListing.style}\n;
+    if (randomListing.description) message += 📄 **Описание:** ${randomListing.description}\n;
     
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
     return;
   }
   
   if (data === 'sell_create') {
+    // Запускаем процесс продажи
+    users[userId] = users[userId] || {};
+    users[userId].session = { flow: 'sell', step: 'title', temp: {} };
+    await saveData();
+    
     await bot.sendMessage(chatId, 
-      '➕ **Создание объявления**\n\n' +
-      'Для создания объявления используйте панель модерации:\n' +
-      `🔗 ${config.moderationUrl}\n\n` +
-      'Там вы сможете:\n' +
-      '• Загрузить фото\n' +
-      '• Указать все детали\n' +
-      '• Опубликовать объявление',
+      '💰 Создание объявления**\n\n' +
+      '📝 **Шаг 1/6: Название товара**\n\n' +
+      'Напишите название вашего товара:\n' +
+      'Например: "Nike Air Force 1, размер 42"',
       { parse_mode: 'Markdown' }
     );
     return;
@@ -287,14 +419,14 @@ bot.on('callback_query', async (query) => {
   if (data === 'search_filters') {
     await bot.sendMessage(chatId, 
       '🎯 **Фильтры поиска**\n\n' +
-      'Для настройки фильтров используйте панель модерации:\n' +
-      `🔗 ${config.moderationUrl}\n\n` +
       'Доступные фильтры:\n' +
       '• 👤 Пол (мужской/женский)\n' +
       '• 🎨 Стиль (архив, кежуал, стритвир)\n' +
       '• 👕 Категория одежды\n' +
       '• 💰 Цена (от/до)\n' +
-      '• 🏷️ Бренд',
+      '• 🏷 Бренд\n\n' +
+      'Для использования фильтров введите поисковый запрос с указанием параметров:\n' +
+      'Например: "кроссовки мужские Nike до 5000"',
       { parse_mode: 'Markdown' }
     );
     return;
@@ -339,6 +471,7 @@ app.get('/', (req, res) => {
   `);
 });
 
+miss, [25.10.2025 1:35]
 // Запуск сервера
 async function start() {
   try {
@@ -368,9 +501,9 @@ async function start() {
       try {
         await bot.sendMessage(config.adminChatId, 
           '🚀 **Shomy Bay Bot запущен!**\n\n' +
-          `🌐 **Статус:** http://localhost:${config.port}/status\n` +
-          `🔗 **Модерация:** ${config.moderationUrl}\n` +
-          `⏰ **Время:** ${new Date().toLocaleString('ru-RU')}`,
+          `🌐 **Статус: http://localhost:${config.port}/status\n` +
+          🔗 **Модерация:** ${config.moderationUrl}\n +
+          ⏰ **Время:** ${new Date().toLocaleString('ru-RU')},
           { parse_mode: 'Markdown' }
         );
       } catch (error) {
